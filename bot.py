@@ -14,7 +14,7 @@ ADMIN_KEY = "starware-admin-2026"
 AUTHORIZED_USERS = [1436458270759063603]
 BUYER_ROLE_NAME = "Starware"
 MEMBER_ROLE_NAME = "Star"
-EXE_PATH = Path("/tmp/Star.exe")
+DOWNLOAD_URL = "https://www.mediafire.com/file/xt8fgrma8khbyzs/Starware.zip/file"
 
 _join_times = {}
 _raid_mode = False
@@ -481,8 +481,7 @@ async def addbuyer(ctx, member: discord.Member, username: str, password: str):
     )
     embed.set_footer(text="Starware | Login credentials \u2b50")
     await ctx.reply(embed=embed)
-    if EXE_PATH.exists():
-        await ctx.send(f"{member.mention} \u2b50 Here is your download:", file=discord.File(str(EXE_PATH)))
+    await ctx.send(f"{member.mention} \u2b50 Download Starware here: {DOWNLOAD_URL}")
 
 @bot.command(name="renew")
 async def renew(ctx, username: str):
