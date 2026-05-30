@@ -1,7 +1,8 @@
 import os, discord
 from discord.ext import commands, tasks
-import json, hashlib, asyncio, subprocess
+import json, hashlib, asyncio, subprocess, threading
 from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.request as _ur
 import ssl as _ssl
 
@@ -914,5 +915,17 @@ async def kick_user(ctx, member: discord.Member, *, reason: str = "No reason"):
     await member.kick(reason=reason)
     await _ephemeral_reply(ctx, f"\U0001f4a2 Kicked {member.mention}. Reason: {reason}")
 
+class _HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+    def log_message(self, *a):
+        pass
+
+def _run_health():
+    HTTPServer(("0.0.0.0", int(os.environ.get("PORT", 8080))), _HealthHandler).serve_forever()
+
 if __name__ == "__main__":
+    threading.Thread(target=_run_health, daemon=True).start()
     bot.run(BOT_TOKEN)
