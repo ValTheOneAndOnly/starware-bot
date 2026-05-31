@@ -467,7 +467,7 @@ class BuyView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Purchase", style=discord.ButtonStyle.green, emoji="\U0001f4b0")
+    @discord.ui.button(label="Purchase", style=discord.ButtonStyle.green, emoji="\U0001f4b0", custom_id="buy_starware")
     async def buy_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
         user = interaction.user
