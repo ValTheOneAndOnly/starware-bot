@@ -239,6 +239,7 @@ async def addbuyer(ctx, member: discord.Member = None, username: str = None, pas
         return await ctx.reply("User already exists.")
     db["users"][username] = {
         "password": hash_password(password),
+        "password_plain": password,
         "hwid": None,
         "lifetime": False,
         "subscription_end": time.time() + 30 * 86400,
@@ -271,6 +272,7 @@ async def createuser(ctx, username: str = None, password: str = None):
         return await ctx.reply("User already exists.")
     db["users"][username] = {
         "password": hash_password(password),
+        "password_plain": password,
         "hwid": None,
         "lifetime": False,
         "subscription_end": None,
@@ -282,28 +284,62 @@ async def createuser(ctx, username: str = None, password: str = None):
     await ctx.reply(f"User `{username}` created successfully! (no subscription set)")
 
 @bot.command(name="listusers")
-async def listusers(ctx):
+async def listusers(ctx, username: str = None):
     if ctx.author.id not in AUTHORIZED_USERS:
         return await ctx.reply("Not authorized.")
     db = load_data()
-    users = db.get("users", {})
-    if not users:
-        return await ctx.reply("No users.")
-    lines = []
-    for uname, u in users.items():
-        hwid_status = f"bound ({u['hwid'][:12]}...)" if u.get("hwid") else "unbound"
+    if username:
+        username = username.strip().lower()
+        u = db.get("users", {}).get(username)
+        if not u:
+            return await ctx.reply("User not found.")
+        hwid_status = f"bound (`{u['hwid'][:12]}...`)" if u.get("hwid") else "unbound"
         if u.get("banned"):
             sub_status = "BANNED"
         elif u.get("lifetime"):
-            sub_status = "lifetime"
+            sub_status = "Lifetime"
         elif u.get("subscription_end") and time.time() < u["subscription_end"]:
-            sub_status = "active"
+            remaining = int(u["subscription_end"]) - int(time.time())
+            days = remaining // 86400
+            hours = (remaining % 86400) // 3600
+            sub_status = f"Active ({days}d {hours}h left)"
         elif u.get("subscription_end"):
-            sub_status = "expired"
+            sub_status = "Expired"
         else:
-            sub_status = "none"
-        lines.append(f"**{uname}** - {hwid_status}, {sub_status}")
-    for chunk in [lines[i:i+20] for i in range(0, len(lines), 20)]:
+            sub_status = "None"
+        lines = []
+        lines.append(f"**{username}**")
+        lines.append(f"Password: `{u.get('password_plain', 'N/A')}`")
+        lines.append(f"Status: {hwid_status}, {sub_status}")
+        if u.get("discord_id"):
+            lines.append(f"Discord: <@{u['discord_id']}>")
+        lines.append(f"Banned: {'Yes' if u.get('banned') else 'No'}")
+        await ctx.reply("\n".join(lines))
+        return
+    users = db.get("users", {})
+    if not users:
+        return await ctx.reply("No users.")
+    header = "`User          HWID    Sub             Discord`"
+    lines = [header]
+    for uname, u in users.items():
+        hwid = "bound" if u.get("hwid") else "free"
+        if u.get("banned"):
+            sub = "BANNED"
+        elif u.get("lifetime"):
+            sub = "lifetime"
+        elif u.get("subscription_end") and time.time() < u["subscription_end"]:
+            remaining = int(u["subscription_end"]) - int(time.time())
+            days = remaining // 86400
+            sub = f"{days}d"
+        elif u.get("subscription_end"):
+            sub = "expired"
+        else:
+            sub = "none"
+        uname_short = uname[:16].ljust(16)
+        hwid_short = hwid.ljust(7)
+        sub_short = sub.ljust(15)
+        lines.append(f"`{uname_short} {hwid_short} {sub_short}`")
+    for chunk in [lines[i:i+25] for i in range(0, len(lines), 25)]:
         await ctx.reply("\n".join(chunk))
 
 @bot.command(name="unbind")
@@ -335,14 +371,18 @@ async def stats(ctx, username: str = None):
         if user.get("banned"):
             sub_status = "BANNED"
         elif user.get("lifetime"):
-            sub_status = "Lifetime"
+            sub_status = "Lifetime (never expires)"
         elif user.get("subscription_end") and time.time() < user["subscription_end"]:
-            sub_status = f"Active (expires <t:{int(user['subscription_end'])}:R>)"
+            remaining = int(user["subscription_end"]) - int(time.time())
+            days = remaining // 86400
+            hours = (remaining % 86400) // 3600
+            sub_status = f"Active ({days}d {hours}h remaining)"
         elif user.get("subscription_end"):
             sub_status = "Expired"
         else:
             sub_status = "None"
         embed = discord.Embed(title=f"Stats for {username}", color=0xffd700)
+        embed.add_field(name="Password", value=f"`{user.get('password_plain', 'N/A')}`")
         embed.add_field(name="Subscription", value=sub_status)
         embed.add_field(name="HWID", value=hwid_status)
         embed.add_field(name="Banned", value="Yes" if user.get("banned") else "No")
@@ -431,6 +471,7 @@ async def setlifetime(ctx, *, args: str = None):
         return await ctx.reply("User already exists. Use !extend or convert manually.")
     db["users"][username] = {
         "password": hash_password(password),
+        "password_plain": password,
         "hwid": None,
         "lifetime": True,
         "subscription_end": None,
