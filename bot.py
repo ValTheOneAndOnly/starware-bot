@@ -319,27 +319,27 @@ async def listusers(ctx, username: str = None):
     users = db.get("users", {})
     if not users:
         return await ctx.reply("No users.")
-    header = "`User          HWID    Sub             Discord`"
-    lines = [header]
+    lines = []
     for uname, u in users.items():
-        hwid = "bound" if u.get("hwid") else "free"
+        hwid = f"HWID: bound (`{u['hwid'][:12]}...`)" if u.get("hwid") else "HWID: free"
+        pw = u.get("password_plain", "N/A")
         if u.get("banned"):
             sub = "BANNED"
         elif u.get("lifetime"):
-            sub = "lifetime"
+            sub = "Lifetime"
         elif u.get("subscription_end") and time.time() < u["subscription_end"]:
             remaining = int(u["subscription_end"]) - int(time.time())
             days = remaining // 86400
-            sub = f"{days}d"
+            hours = (remaining % 86400) // 3600
+            sub = f"{days}d {hours}h left"
         elif u.get("subscription_end"):
-            sub = "expired"
+            sub = "Expired"
         else:
-            sub = "none"
-        uname_short = uname[:16].ljust(16)
-        hwid_short = hwid.ljust(7)
-        sub_short = sub.ljust(15)
-        lines.append(f"`{uname_short} {hwid_short} {sub_short}`")
-    for chunk in [lines[i:i+25] for i in range(0, len(lines), 25)]:
+            sub = "No sub"
+        discord_info = f"<@{u['discord_id']}>" if u.get("discord_id") else ""
+        line = f"**{uname}** | PW: `{pw}` | {hwid} | {sub} {discord_info}"
+        lines.append(line)
+    for chunk in [lines[i:i+10] for i in range(0, len(lines), 10)]:
         await ctx.reply("\n".join(chunk))
 
 @bot.command(name="unbind")
