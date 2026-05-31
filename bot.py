@@ -188,6 +188,7 @@ async def on_ready():
     print(f"Bot logged in as {bot.user}")
     print(f"Master HWID: {MASTER_HWID}")
     bot.add_view(BuyView())
+    bot.loop.create_task(admin_panel_loop())
 
 @bot.event
 async def on_member_join(member):
@@ -231,6 +232,89 @@ async def panel(ctx):
     )
     embed.set_footer(text="Starware | The ultimate Roblox injector")
     await ctx.send(embed=embed, view=BuyView())
+
+ADMIN_PANEL_TIMEOUT = 300  # 5 min
+
+@bot.command(name="apanel")
+async def apanel(ctx):
+    if ctx.author.id not in AUTHORIZED_USERS:
+        return await ctx.reply("Not authorized.")
+    embed = discord.Embed(
+        title="Starware Admin Panel",
+        description="Setting up admin panel...",
+        color=0x00ff00
+    )
+    msg = await ctx.send(embed=embed)
+    db = load_data()
+    db["admin_panel"] = {
+        "channel_id": msg.channel.id,
+        "message_id": msg.id
+    }
+    save_data(db)
+    await ctx.message.delete()
+    await refresh_admin_panel(msg)
+
+async def refresh_admin_panel(msg):
+    db = load_data()
+    now = time.time()
+    users = db.get("users", {})
+    if not users:
+        content = "No users registered."
+    else:
+        lines = []
+        lines.append(f"{'User':<18} {'PW':<14} {'HWID':<14} {'Status':<9} Sub")
+        lines.append("-" * 80)
+        for uname, u in sorted(users.items()):
+            pw = u.get("password_plain", "N/A")[:12]
+            hwid = (u["hwid"][:12] + "...") if u.get("hwid") else "free"
+            last_seen = u.get("last_seen")
+            if last_seen and (now - last_seen) < ADMIN_PANEL_TIMEOUT:
+                status = "ONLINE"
+            else:
+                status = "OFFLINE"
+            if u.get("banned"):
+                sub = "BANNED"
+            elif u.get("lifetime"):
+                sub = "Lifetime"
+            elif u.get("subscription_end") and now < u["subscription_end"]:
+                remaining = int(u["subscription_end"]) - int(now)
+                days = remaining // 86400
+                hours = (remaining % 86400) // 3600
+                sub = f"{days}d {hours}h"
+            elif u.get("subscription_end"):
+                sub = "Expired"
+            else:
+                sub = "No sub"
+            lines.append(f"{uname:<18} {pw:<14} {hwid:<14} {status:<9} {sub}")
+        content = "```\n" + "\n".join(lines) + "\n```"
+    embed = discord.Embed(
+        title="Starware Admin Panel",
+        description=content,
+        color=0x00ff00
+    )
+    embed.set_footer(text=f"Last updated: {datetime.datetime.now().strftime('%H:%M:%S')} | Auto-refreshes every 30s")
+    try:
+        await msg.edit(embed=embed)
+    except:
+        pass
+
+async def admin_panel_loop():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        try:
+            db = load_data()
+            panel = db.get("admin_panel")
+            if panel and panel.get("channel_id") and panel.get("message_id"):
+                channel = bot.get_channel(panel["channel_id"])
+                if channel:
+                    try:
+                        msg = await channel.fetch_message(panel["message_id"])
+                        await refresh_admin_panel(msg)
+                    except:
+                        pass
+        except:
+            pass
+        await asyncio.sleep(30)
 
 @bot.command(name="addbuyer")
 async def addbuyer(ctx, member: discord.Member = None, username: str = None, password: str = None):
