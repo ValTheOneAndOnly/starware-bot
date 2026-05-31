@@ -6,6 +6,7 @@ from pathlib import Path
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 API_PORT = int(os.environ.get("PORT", 5000))
+BUILD_CACHE_BUST = "v2"
 DATA_FILE = Path(__file__).parent / "data.json"
 AUTHORIZED_USERS = [1436458270759063603]
 
