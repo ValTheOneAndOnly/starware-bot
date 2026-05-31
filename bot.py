@@ -6,8 +6,8 @@ from pathlib import Path
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 API_PORT = int(os.environ.get("PORT", 5000))
-BUILD_CACHE_BUST = "v3"
-DATA_FILE = Path(__file__).parent / "data.json"
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+BUILD_CACHE_BUST = "v4"
 AUTHORIZED_USERS = [1436458270759063603]
 
 BUYER_ROLE_NAME = "Buyer"
@@ -16,13 +16,44 @@ ANTIRAID_WINDOW = 10
 
 app = Flask(__name__)
 
+import psycopg2
+import psycopg2.extras
+
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
+def init_db():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS state (
+            id INTEGER PRIMARY KEY,
+            data TEXT NOT NULL
+        )
+    """)
+    cur.execute("INSERT INTO state (id, data) VALUES (1, '{}') ON CONFLICT DO NOTHING")
+    conn.commit()
+    cur.close()
+    conn.close()
+
 def load_data():
-    if DATA_FILE.exists():
-        return json.loads(DATA_FILE.read_text())
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT data FROM state WHERE id = 1")
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if row and row[0]:
+        return json.loads(row[0])
     return {"users": {}, "warnings": {}, "antiraid": False}
 
 def save_data(data):
-    DATA_FILE.write_text(json.dumps(data, indent=2))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE state SET data = %s WHERE id = 1", (json.dumps(data),))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 def hash_password(pw):
     return hashlib.sha256(pw.encode()).hexdigest()
@@ -706,5 +737,8 @@ def run_flask():
     app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
+    if DATABASE_URL:
+        init_db()
+        print("Connected to PostgreSQL database")
     threading.Thread(target=run_flask, daemon=True).start()
     bot.run(BOT_TOKEN)
