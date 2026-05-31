@@ -354,11 +354,22 @@ async def extend(ctx, username: str = None, days: int = None):
     await ctx.reply(f"Extended `{username}` by {days} days. Expires <t:{int(user['subscription_end'])}:R>.")
 
 @bot.command(name="setlifetime")
-async def setlifetime(ctx, username: str = None):
+async def setlifetime(ctx, *, args: str = None):
     if ctx.author.id not in AUTHORIZED_USERS:
         return await ctx.reply("Not authorized.")
-    if not username:
-        return await ctx.reply("Usage: !setlifetime <username>")
+    if not args:
+        return await ctx.reply("Usage: `!setlifetime <username>` or `!setlifetime @user <username>`")
+    parts = args.strip().split()
+    member = None
+    username = None
+    if parts[0].startswith("<@") and len(parts) >= 2:
+        try:
+            member = await commands.MemberConverter().convert(ctx, parts[0])
+            username = " ".join(parts[1:])
+        except:
+            member = None
+    if not member:
+        username = args.strip()
     username = username.strip().lower()
     password = "".join(random.choices(string.ascii_letters + string.digits, k=12))
     db = load_data()
@@ -369,15 +380,22 @@ async def setlifetime(ctx, username: str = None):
         "hwid": None,
         "lifetime": True,
         "subscription_end": None,
-        "discord_id": None,
+        "discord_id": str(member.id) if member else None,
         "banned": False,
         "created_by": ctx.author.name
     }
     save_data(db)
+    if member:
+        role = discord.utils.get(ctx.guild.roles, name=BUYER_ROLE_NAME)
+        if not role:
+            role = await ctx.guild.create_role(name=BUYER_ROLE_NAME)
+        await member.add_roles(role)
     embed = discord.Embed(title="Lifetime License Created", color=0x00ff00)
     embed.add_field(name="Username", value=f"`{username}`")
     embed.add_field(name="Password", value=f"`{password}`")
     embed.add_field(name="Download", value="https://www.mediafire.com/file/7djvc5o31rre0df/Starware.zip/file", inline=False)
+    if member:
+        embed.add_field(name="Discord User", value=member.mention)
     embed.set_footer(text="Share these credentials with the buyer")
     await ctx.reply(embed=embed)
 
@@ -656,7 +674,7 @@ async def commands_list(ctx):
         "`!stats [username]` - Overall summary or specific user's stats\n"
         "`!renew username` - Extend sub by 30 days\n"
         "`!extend username days` - Extend sub by custom days\n"
-        "`!setlifetime username` - Grant lifetime access\n"
+        "`!setlifetime [@user] <username>` - Grant lifetime access (optional @mention for role)\n"
         "`!deleteuser username` - Delete a user account"
     ), inline=False)
     embed.add_field(name="Moderation", value=(
