@@ -92,11 +92,14 @@ def login():
         return jsonify({})
     if request.method == "GET":
         body = request.args
+        print(f"LOGIN GET args: {dict(body)}")
     else:
         try:
             body = request.get_json(force=True)
+            print(f"LOGIN JSON: {dict(body)}")
         except:
             body = request.form
+            print(f"LOGIN FORM: {dict(body)}")
     username = body.get("username") or body.get("user") or ""
     username = username.strip().lower()
     password = body.get("password") or body.get("pass") or body.get("key") or ""
