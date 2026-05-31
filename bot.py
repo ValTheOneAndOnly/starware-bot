@@ -346,7 +346,7 @@ async def addbuyer(ctx, member: discord.Member = None, username: str = None, pas
     embed.add_field(name="Username", value=f"`{username}`")
     embed.add_field(name="Password", value=f"`{password}`")
     embed.add_field(name="Subscription", value="30 days (default)")
-    embed.add_field(name="Download", value="https://www.mediafire.com/file/u6pfgt7d199fh3n/Starware.zip/file", inline=False)
+    embed.add_field(name="Download", value="https://www.mediafire.com/file/7aiwxkqnehwtcrw/Starware.zip/file", inline=False)
     await ctx.reply(embed=embed)
 
 @bot.command(name="createuser")
@@ -596,7 +596,7 @@ async def setlifetime(ctx, *, args: str = None):
     embed = discord.Embed(title="Lifetime License Created", color=0x00ff00)
     embed.add_field(name="Username", value=f"`{username}`")
     embed.add_field(name="Password", value=f"`{password}`")
-    embed.add_field(name="Download", value="https://www.mediafire.com/file/u6pfgt7d199fh3n/Starware.zip/file", inline=False)
+    embed.add_field(name="Download", value="https://www.mediafire.com/file/7aiwxkqnehwtcrw/Starware.zip/file", inline=False)
     if member:
         embed.add_field(name="Discord User", value=member.mention)
     embed.set_footer(text="Share these credentials with the buyer")
