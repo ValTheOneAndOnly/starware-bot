@@ -674,24 +674,24 @@ async def commands_list(ctx):
         "`!stats [username]` - Overall summary or specific user's stats\n"
         "`!renew username` - Extend sub by 30 days\n"
         "`!extend username days` - Extend sub by custom days\n"
-        "`!setlifetime [@user] <username>` - Grant lifetime access (optional @mention for role)\n"
+        "`!setlifetime [@user] <username>` - Grant lifetime access (optional @ for role)\n"
         "`!deleteuser username` - Delete a user account"
     ), inline=False)
     embed.add_field(name="Moderation", value=(
         "`!antiraid on/off` - Enable/disable raid auto-detection\n"
         "`!lockdown` - Lock all text channels\n"
         "`!unlock` - Unlock all text channels\n"
-        "`!mute @user` - Mute a member\n"
+        "`!mute @user` - Mute a member (10 min timeout)\n"
         "`!unmute @user` - Unmute a member\n"
-        "`!kick @user` - Kick a member\n"
+        "`!kick @user` - Kick a member from the server\n"
         "`!ban @user` - Ban a member (also flags in Starware)"
     ), inline=False)
     embed.add_field(name="Tickets", value=(
-        "`!close` - Close the current ticket\n"
+        "`!close` - Close the current ticket (ticket creator only)\n"
         "`!delete` - Delete the current ticket (admin only)"
     ), inline=False)
     embed.add_field(name="Server Setup", value=(
-        "`!setup` - Auto-create roles, categories, and channels\n"
+        "`!setup` - Auto-create roles, categories, channels, and permissions\n"
         "`!myid` - Get your Discord user ID\n"
         "`!commands` - Show this command list"
     ), inline=False)
