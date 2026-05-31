@@ -381,6 +381,20 @@ async def setlifetime(ctx, username: str = None):
     embed.set_footer(text="Share these credentials with the buyer")
     await ctx.reply(embed=embed)
 
+@bot.command(name="deleteuser")
+async def deleteuser(ctx, username: str = None):
+    if ctx.author.id not in AUTHORIZED_USERS:
+        return await ctx.reply("Not authorized.")
+    if not username:
+        return await ctx.reply("Usage: !deleteuser <username>")
+    username = username.strip().lower()
+    db = load_data()
+    if username not in db.get("users", {}):
+        return await ctx.reply("User not found.")
+    del db["users"][username]
+    save_data(db)
+    await ctx.reply(f"Deleted user `{username}`.")
+
 @bot.command(name="antiraid")
 async def antiraid(ctx, mode: str = None):
     if ctx.author.id not in AUTHORIZED_USERS:
@@ -642,7 +656,8 @@ async def commands_list(ctx):
         "`!stats [username]` - Overall summary or specific user's stats\n"
         "`!renew username` - Extend sub by 30 days\n"
         "`!extend username days` - Extend sub by custom days\n"
-        "`!setlifetime username` - Grant lifetime access"
+        "`!setlifetime username` - Grant lifetime access\n"
+        "`!deleteuser username` - Delete a user account"
     ), inline=False)
     embed.add_field(name="Moderation", value=(
         "`!antiraid on/off` - Enable/disable raid auto-detection\n"
