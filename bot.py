@@ -79,6 +79,16 @@ def add_cors(resp):
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
+@app.before_request
+def log_all():
+    if request.path != "/ping":
+        print(f"REQ: {request.method} {request.path} args={dict(request.args)}")
+        if request.data:
+            try:
+                print(f"BODY: {request.get_json(force=True)}")
+            except:
+                print(f"BODY: {request.data[:300]}")
+
 @app.route("/ping", methods=["GET", "OPTIONS"])
 def ping():
     if request.method == "OPTIONS":
