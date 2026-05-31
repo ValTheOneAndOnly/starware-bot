@@ -142,13 +142,16 @@ def login():
         return jsonify({"status": "error", "message": "No active subscription"})
 
     bound = user.get("hwid")
+    user["last_seen"] = time.time()
     if bound is None:
         user["hwid"] = hwid
         save_data(db)
         return jsonify({"status": "ok", "message": "Logged in and HWID bound"})
     elif bound == hwid:
+        save_data(db)
         return jsonify({"status": "ok", "message": "Logged in"})
     else:
+        save_data(db)
         return jsonify({"status": "error", "message": "Account already bound to another device"})
 
 @app.route("/check", methods=["GET", "OPTIONS"])
@@ -162,6 +165,8 @@ def check_hwid():
     db = load_data()
     for uname, user in db.get("users", {}).items():
         if user.get("hwid") == hwid:
+            user["last_seen"] = time.time()
+            save_data(db)
             if user.get("banned"):
                 return jsonify({"status": "banned", "message": "Your banned buddy nice try"})
             if user.get("lifetime"):
@@ -341,6 +346,25 @@ async def listusers(ctx, username: str = None):
         lines.append(line)
     for chunk in [lines[i:i+10] for i in range(0, len(lines), 10)]:
         await ctx.reply("\n".join(chunk))
+
+ACTIVE_TIMEOUT = 300  # 5 minutes
+
+@bot.command(name="active")
+async def active_users(ctx):
+    if ctx.author.id not in AUTHORIZED_USERS:
+        return await ctx.reply("Not authorized.")
+    db = load_data()
+    now = time.time()
+    active = []
+    for uname, u in db.get("users", {}).items():
+        last_seen = u.get("last_seen")
+        if last_seen and (now - last_seen) < ACTIVE_TIMEOUT:
+            ago = int(now - last_seen)
+            active.append(f"**{uname}** - {ago}s ago")
+    if not active:
+        await ctx.reply("No users currently logged in.")
+    else:
+        await ctx.reply("**Active Users (last 5 min):**\n" + "\n".join(active))
 
 @bot.command(name="unbind")
 async def unbind(ctx, username: str = None):
