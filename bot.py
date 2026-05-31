@@ -85,14 +85,23 @@ def ping():
         return jsonify({})
     return jsonify({"status": "ok", "message": "Starware API is live"})
 
-@app.route("/login", methods=["POST", "OPTIONS"])
+@app.route("/login", methods=["GET", "POST", "OPTIONS"])
+@app.route("/api/login", methods=["GET", "POST", "OPTIONS"])
 def login():
     if request.method == "OPTIONS":
         return jsonify({})
-    body = request.get_json(force=True)
-    username = body.get("username", "").strip().lower()
-    password = body.get("password", "").strip()
-    hwid = body.get("hwid", "")
+    if request.method == "GET":
+        body = request.args
+    else:
+        try:
+            body = request.get_json(force=True)
+        except:
+            body = request.form
+    username = body.get("username") or body.get("user") or ""
+    username = username.strip().lower()
+    password = body.get("password") or body.get("pass") or body.get("key") or ""
+    password = password.strip()
+    hwid = body.get("hwid") or ""
 
     if MASTER_HWID != "unknown" and hwid == MASTER_HWID:
         return jsonify({"status": "ok", "message": "Authorized (owner)"})
@@ -130,6 +139,7 @@ def login():
         return jsonify({"status": "error", "message": "Account already bound to another device"})
 
 @app.route("/check", methods=["GET", "OPTIONS"])
+@app.route("/api/check", methods=["GET", "OPTIONS"])
 def check_hwid():
     if request.method == "OPTIONS":
         return jsonify({})
